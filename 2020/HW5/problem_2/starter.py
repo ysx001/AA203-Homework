@@ -57,7 +57,20 @@ class Policy(nn.Module):
         # mean of action distribution,
         # variance of action distribution (pass this through a strictly positive function),
         # state value
-        
+
+        x = F.relu(self.affine1(x))
+
+        # actor: choses action to take from state s_t 
+        # by returning probability of each action
+        action_mean = F.softmax(self.action_mean(x), dim=-1)
+        action_var = F.softmax(self.action_var(x), dim=-1)
+
+        # critic: evaluates being in the state s_t
+        state_values = self.value_head(x)
+
+        # return values for both actor and critic as a tuple of 2 values:
+        # 1. a list with the probability of each action over the action space
+        # 2. the value from state s_t 
         return 0.5*action_mean, 0.5*action_var, state_values
     
 model = Policy().float()
@@ -94,8 +107,7 @@ def finish_episode():
     for r in model.rewards[::-1]:
         # TODO compute the value at state x
         # via the reward and the discounted tail reward
-
-        
+        R = r + args.gamma * R        
         
         returns.insert(0, R)
         
@@ -105,15 +117,16 @@ def finish_episode():
     
     for (log_prob, value), R in zip(saved_actions, returns):
         # TODO compute the advantage via subtracting off value
-        
+        advantage = R - value.item()
         
         # TODO calculate actor (policy) loss, from log_prob (saved in select action)
         # and from advantage
-        
+        policy_losses.append(-log_prob * advantage)
         # append this to policy_losses
         
         # TODO calculate critic (value) loss
-        
+        value_losses.append(F.smooth_l1_loss(value, torch.tensor([R])))
+
     # reset gradients
     optimizer.zero_grad()
     
