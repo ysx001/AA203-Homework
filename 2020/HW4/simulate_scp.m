@@ -12,7 +12,7 @@ clear all; clc; close all;
 rng(203); % for some consistency!
 
 animate = true; % change to visualize animation
-noise = true; % change to toggle stochastic disturbance
+noise = false; % change to toggle stochastic disturbance
 
 u_lb = -4; %-4
 u_ub = 3; %3

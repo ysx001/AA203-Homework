@@ -63,9 +63,10 @@ function [x,u] = scp(x_old, u_old, u_lb, u_ub, f, linearize_dynamics, Q,R, Qf, g
     num_constr = n*num_steps;
 
     % constraints will have the form C*x == d
-    C = zeros(num_constr, (n+m)*num_steps);
+    %C = zeros(num_constr, (n+m)*num_steps);
     d = zeros(num_constr,1);
-
+    %A = randn(n,n);
+    %B = randn(n,m);
     % Fill C,d with the appropriate dynamics matrices to enforce the
     % constraints.
     % Specifically, for each timestep: x_bar,u_bar is the state and control
@@ -74,6 +75,16 @@ function [x,u] = scp(x_old, u_old, u_lb, u_ub, f, linearize_dynamics, Q,R, Qf, g
     % then, we need to linearize f(x_t,u_t) as f(x_bar,u_bar) + other terms
         % TODO - Please initialize and fill up C,d so that C*x = d
         % represents the linearized equality constraints.
+    C = [];
+    for i = 1: num_steps - 1
+        [A, B, c] = linearize_dynamics(x_old((i-1)*4 + 1 : i*4), u_old(i), dt);
+        Q1 = [A B];
+        Q2 = [eye(n) zeros(n, m)];
+        C = [C; circshift([Q1 Q2 zeros(n, (num_steps-2) * (n+m))], (n+m)*(i-1), 2)];
+        %size(A)
+        %size(B)
+    end
+    d = C*z_old;
     % initial condition constraint
         % TODO - Please add the initial codition constraint
 
@@ -87,8 +98,10 @@ function [x,u] = scp(x_old, u_old, u_lb, u_ub, f, linearize_dynamics, Q,R, Qf, g
         subject to
             % TODO
             % TODO: Include linearized dynamics constraints C*x <= d.
+            C*z <= d
             lb <= z <= ub; % control effort bounds
             % TODO - Add trust region constraints.
+            norm(z - z_old, Inf) <= 0.5
     cvx_end
 
     var = z; % retrieve the optimal solution from CVX
